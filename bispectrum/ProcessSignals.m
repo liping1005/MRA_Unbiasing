@@ -113,7 +113,7 @@ lowpass_BS = ifft(ifftshift(unbiased_BS_hat .* lowpass_hat)).*2^l;
 
 X_w = repmat(w, length(w), 1);
 Y_w= repmat(w',1,length(w));
-data = 4 .* BispectrumAvg +  CalculateDerivatives(BispectrumAvg, X_w, Y_w,  w(2)-(1));
+data = 4 .* BispectrumAvg +  CalculateDerivatives(BispectrumAvg, X_w, Y_w,  w(2)-w(1));
 %solve optimization problem via whatever optimizer for estimator, here is
 %problem
 eta = sqrt(var(Tau));
