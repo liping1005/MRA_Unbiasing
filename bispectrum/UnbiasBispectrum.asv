@@ -1,0 +1,31 @@
+function UnbiasedBS = UnbiasBispectrum(bispectrum, signal_mean, sigma)
+    %{
+    Calculates estimate for centering of bispectrum based on paper.
+    Assumes the bipectrum is a square.
+
+    ARGS
+    bispectrum: is the average bispectrum of f_j
+    signal_mean: is the mean of the fourier transforms
+    sigma: is the noise level
+    %}
+    [N,~] = size(bispectrum);
+    m_x = round(N/2);
+   
+    %hat_mu(0) part
+    mean = signal_mean(m_x);
+    %noise part
+    noise = sigma^2;
+
+    %only the axis and the diagonal
+    UnbiasedBS = bispectrum;
+    %omega1 = 0
+    UnbiasedBS(m_x,:) = UnbiasedBS(m_x,:) - N*mean * noise * ones_like(bispectrum(m_x,:));
+    %omega2 = 0
+    UnbiasedBS(:,m_x) = UnbiasedBS(:,m_x) - N*mean * noise * ones_like(bispectrum(:,m_x));
+    %omega1 = omega2
+    UnbiasedBS =  UnbiasedBS - diag(N* mean * noise * ones(N));
+end
+
+
+
+    

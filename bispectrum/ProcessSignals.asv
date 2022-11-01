@@ -1,0 +1,171 @@
+%https://bitbucket.org/annavlittle/inversion-unbiasing/src/master/SupportingFunctions/ProcessSignals.m
+
+%Randomly sample dilation factors:
+Tau = zeros(M,1);
+if strcmp(RandomDilationOpts.Distribution,'NoDilation')
+    Tau = zeros(M,1);
+elseif strcmp(RandomDilationOpts.Distribution,'Uniform')==1
+    Tau=2*RandomDilationOpts.MagnitudeMaxTau*rand(M,1)-RandomDilationOpts.MagnitudeMaxTau;
+elseif strcmp(RandomDilationOpts.Distribution,'TruncatedGaussian')==1
+    pd = makedist('Normal');
+    pd.mu = 0;
+    pd.sigma = RandomDilationOpts.SDTruncatedGaussian;
+    truncGaus = truncate(pd,-RandomDilationOpts.MagnitudeMaxTau,RandomDilationOpts.MagnitudeMaxTau);
+    Tau = random(truncGaus,M,1);
+end
+
+t1=-(N/2):(1/2^l):(N/2)-1/2^l;
+t = -(N):(1/2^l):(N)-1/2^l;
+
+% Dilate Signals, either in space or frequency:
+
+if strcmp(RandomDilationOpts.SynthesisDomain, 'Space')
+    % Dilate Signals
+    DilatedSignals = zeros(M,length(t1));
+    %DilatedSignals = DilateFunction(f1,t1,Tau); %Don't L^1 normalize dilations
+    if strcmp(RandomDilationOpts.Distribution,'NoDilation')==1 
+        DilatedSignals = ones(M,1)*f1(t1);
+    else
+        if strcmp(RandomDilationOpts.Normalization,'L1')
+            DilatedSignals = (1./(1-Tau)).*DilateFunction(f1,t1,Tau);
+        elseif strcmp(RandomDilationOpts.Normalization,'Linf')
+            DilatedSignals = DilateFunction(f1,t1,Tau);
+        end 
+    end
+
+    % Pad with zeros:
+    f = [zeros(1,(2^l)*N/2) f1(t1) zeros(1,(2^l)*N/2)];
+
+    PaddedDilatedSignals = [zeros(M,(2^l)*N/2) DilatedSignals zeros(M,(2^l)*N/2)];
+    if strcmp(RandomDilationOpts.Translate, 'True')
+        for i=1:M
+            rand_trans = randsample(length(t),1);
+            PaddedDilatedSignals(i,:) = circshift( PaddedDilatedSignals(i,:), rand_trans );
+        end
+    end
+
+    % Add Additive Noise
+    NoisyPaddedDilatedSignals = PaddedDilatedSignals + true_noise_sigma*sqrt(2^l)*randn( size(PaddedDilatedSignals) );
+
+        
+    % Define frequencies, switch to bispectrum here
+    w=-pi*(2^l):(pi/N):pi*(2^l)-(pi/N);
+    
+    %get fft
+    Undilatedf_hat = ifftshift(fft(fftshift(f)))*(1/2^l);
+    %compute bispectrum and center
+    UndilatedBispectrum = CenterBS(ComputeBispectrum(Undilatedf_hat));
+        
+    % Compute Bispectrum for Dilated Signals
+    FourierTransform = zeros(M, (2^l)*2*N );
+    Bispectrum = zeros(M, (2^l)*2*N, (2^l)*2*N);   
+    for i=1:M
+        FourierTransform(i,:) = ifftshift(fft(fftshift(NoisyPaddedDilatedSignals(i,:))))*(1/2^l); 
+        Bispectrum(i,:,:) = CenterBS(ComputeBispectrum(FourierTransform(i,:)));
+    end   
+elseif strcmp(RandomDilationOpts.SynthesisDomain, 'Frequency')  
+    
+    w=-pi*(2^l):(pi/N):pi*(2^l)-(pi/N);
+    Undilatedf_hat = f1(w);
+    %switch to bispectrum here
+    UndilatedBipectrum = CenterBS(ComputeBispectrum(Undilatedf_hat));
+    f = ifftshift(ifft(ifftshift(Undilatedf_hat)))*2^l;    
+    FourierTransform = zeros(M,length(w));
+    if strcmp(RandomDilationOpts.Distribution,'NoDilation')==1 
+        FourierTransform = ones(M,1)*Undilatedf_hat + true_noise_sigma*randn( size(FourierTransform) );
+    else
+        if strcmp(RandomDilationOpts.Normalization,'L1')
+            FourierTransform = DilateFunction(f1,w,Tau./(Tau-1)) + true_noise_sigma*sqrt(2*N)*randn( size(FourierTransform) );
+        elseif strcmp(RandomDilationOpts.Normalization,'Linf')
+            FourierTransform = (1-Tau).*DilateFunction(f1,w,Tau./(Tau-1)) + true_noise_sigma*sqrt(2*N)*randn( size(FourierTransform) );
+        end 
+    end
+    %switch to bispectrum here
+    Bispectrum = CenterBS(ComputeBispectrum(FourierTransform)); 
+end
+
+
+%% Estimate SNR empirically:
+
+if true_noise_sigma > 0
+    snr = mean((abs(f).^2))/true_noise_sigma^2;
+    %snr_2 = mean(UndilatedPowerSpectrum)/true_noise_sigma^2
+end
+
+%make guassian filter
+low_pass = MakeSmoothingMatrix(w);
+
+%get mean of signals to unbias
+
+%calculate \tilde{g}_eta + \tilde{g}_\sigma
+unbiased_BS = UnbiasBispectrum ;
+
+%filter with low pass via fft
+lowpass_BS = ifft(fft(fftshift(unbiased_BS)) *fft(fftshift(low_pass)));
+
+% gets r for each (w_1, w_2) pair
+r_grid = getgrid(w);
+
+%calcuate part of the estimator
+estimator = 4 * lowpass_BS + r_grid * CalculateDerivatives(lowpass_BS, w);
+
+%emperically estimate additive noise
+
+%solve optimization problem via whatever optimizer for estimator, here is
+%problem
+
+%use bispectrum inversion algorithm to see if it works
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% Empirically estimate the additive noise variance:
+%estimated_noise_sigma = sqrt(mean([MeanPowerSpectrum(1:N) MeanPowerSpectrum(end-N+1:end)])/(2*N));
+%if true_noise_sigma == 0
+%    noise_sigma = 0; %Do not do additive noise unbiasing if there is no additive noise
+%elseif strcmp(RandomDilationOpts.MomentCalc,'Empirical')==1
+%    noise_sigma = estimated_noise_sigma;
+%else
+%    noise_sigma = true_noise_sigma;
+%end
+
+%
+
+
+%% Empirically estimate the first k even moments of the dilation distribution of tau:
+
+%if strcmp(RandomDilationOpts.Distribution, 'NoDilation')
+%    Moments = [0 0];
+%elseif strcmp(RandomDilationOpts.UnbiasingMethod,'GeneralDerivative')==1 && strcmp(RandomDilationOpts.MomentCalc,'Empirical')==1 && strcmp(RandomDilationOpts.Normalization,'L1')
+%    Moments = EstimateMoments(w,FourierTransform,PowerSpectrum,4,MomentEstimationOpts,N,l,noise_sigma);
+%    TrueMoments = [moment(Tau,2) moment(Tau,4)];
+%elseif strcmp(RandomDilationOpts.MomentCalc,'Oracle')==1
+%    Moments = [moment(Tau,2) moment(Tau,4)];
+%end
