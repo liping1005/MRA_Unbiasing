@@ -116,8 +116,8 @@ else
     imagesc('XData',w,'YData',w,'CData',real(BispectrumAvg))
     title('Data Term Before Smoothing','fontsize',16,'Interpreter','Latex')
     colorbar()
-    %unbiased_BS = UnbiasBispectrum(BispectrumAvg, fftshift(FourierTransformAvg), 0,w);
-    unbiased_BS = BispectrumAvg;
+    unbiased_BS = UnbiasBispectrum(BispectrumAvg, fftshift(FourierTransformAvg), true_noise_sigma, N);
+    %unbiased_BS = BispectrumAvg;
     %filter with low pass via fft
     
     unbiased_BS_fft =  fft2(fftshift(unbiased_BS));

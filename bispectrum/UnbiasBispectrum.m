@@ -1,4 +1,4 @@
-function UnbiasedBS = UnbiasBispectrum(bispectrum, signal_mean, sigma)
+function UnbiasedBS = UnbiasBispectrum(bispectrum, signal_mean, sigma, N)
     %{
     Calculates estimate for centering of bispectrum based on paper.
     Assumes the bipectrum is a square.
@@ -10,19 +10,19 @@ function UnbiasedBS = UnbiasBispectrum(bispectrum, signal_mean, sigma)
     %}
     [J,~] = size(bispectrum);
     m_x = round(J/2);
-   
+    
     %hat_mu(0) part
-    mean = signal_mean(m_x);
+    mu = signal_mean(m_x+1)/(2*N); %this is equal to mean(NoisyPaddedDilatedSignals(:))
     %noise part
     noise = sigma^2;
 
     UnbiasingMat = zeros(J);
-    UnbiasingMat(1,1) = 2; 
-    UnbiasingMat(2,:) = ones(size(bispectrum(2,:)));
-    UnbiasingMat(:,2) = ones(size(bispectrum(:,2)));
+    UnbiasingMat(1,:) = ones(size(bispectrum(1,:)));
+    UnbiasingMat(:,1) = ones(size(bispectrum(:,1)));
     UnbiasingMat = UnbiasingMat + eye(J);
+    UnbiasingMat(1,1) = 3; 
     UnbiasingMat = fftshift(UnbiasingMat);
-    UnbiasedBS = bispectrum - noise * mean * UnbiasingMat;
+    UnbiasedBS = bispectrum - (2*N)^2 * noise * mu * UnbiasingMat;
 end
 
 

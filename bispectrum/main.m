@@ -64,7 +64,7 @@ l=4;
 M=10000; % number of times we sample the noisy signal
 RandomDilationOpts.Normalization = 'Linf'; %Options: L1 or Linf normalized dilations
 RandomDilationOpts.Translate = 'True'; 
-RandomDilationOpts.MagnitudeMaxTau = 0.01; %Needed for both Uniform and TruncatedGaussian (default: 0.2)
+RandomDilationOpts.MagnitudeMaxTau = 0.4; %Needed for both Uniform and TruncatedGaussian (default: 0.2)
 RandomDilationOpts.Distribution='Uniform';
 RandomDilationOpts.UnbiasingMethod = 'Uniform';
 RandomDilationOpts.PSUniform = 'yes'; %for UnbiasingMethod = 'Uniform'; options: yes or no
@@ -73,13 +73,13 @@ RandomDilationOpts.SmoothDerivPS = 'no';
 RandomDilationOpts.SmoothPSCorrectionTerm = 'no'; %Only compute for Oracle! Hasn't been implemented for Empirical
 RandomDilationOpts.InterpolationMethod = 'spline';
 RandomDilationOpts.MomentCalc='Oracle';
-true_noise_sigma=0; %Optional: add additive Gaussian noise
+true_noise_sigma=.5; %Optional: add additive Gaussian noise
 OptimizationOpts.Method = 'Unconstrained';
 OptimizationOpts.Initialization = 'MeanPS_NoDilUnbias'; %options: MeanPS_NoDilUnbias, MeanPS_Order2Unbias, MeanPS_Order4Unbias
 OptimizationOpts.tol = 1e-6;
 OptimizationOpts.Uniformtol = 1e-6; % when UnbiasingMethod = 'Uniform', tolerance for recovering g from h via optimization
 PlotFigs = 'no'; %options: 'yes' or 'no'
 
-ProcessSignals
+%ProcessSignals
 
-PlotResults
+%PlotResults
