@@ -1,0 +1,15 @@
+figure
+hold on
+grid on
+axis square
+imagesc('XData',w,'YData',w,'CData',real(BispectrumAvg))
+title('Avg Bispectrum (Real)','fontsize',16,'Interpreter','Latex')
+colorbar()
+
+figure
+hold on
+grid on
+axis square
+imagesc('XData',w,'YData',w,'CData',real(BispectrumAvg))
+title('Avg Bispectrum (Real)','fontsize',16,'Interpreter','Latex')
+colorbar()
