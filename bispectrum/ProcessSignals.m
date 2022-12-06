@@ -67,6 +67,7 @@ if strcmp(RandomDilationOpts.SynthesisDomain, 'Space')
     end  
     FourierTransformAvg = FourierTransformAvg/M;
     BispectrumAvg = BispectrumAvg/M;
+    plot(real(FourierTransformAvg))
 elseif strcmp(RandomDilationOpts.SynthesisDomain, 'Frequency')  
     
     w=-pi*(2^l):(pi/N):pi*(2^l)-(pi/N);
@@ -89,64 +90,76 @@ elseif strcmp(RandomDilationOpts.SynthesisDomain, 'Frequency')
     Bispectrum = CenterBS(ComputeBispectrum(FourierTransform)); 
 end
 
-%make guassian filter
-low_pass = MakeSmoothingMatrixBS(w);
 
+[X_w,Y_w] = meshgrid(w); 
 
-% Empirically estimate the additive noise variance
-% Use somewhere near the corner where the signal would be nearly zero
-% basically
-estimated_sigma = sqrt(mean(abs([BispectrumAvg(2,1:N) BispectrumAvg(2,end-N+1:end)])));
-%estimated_sigma = 0.01;
-
-%calculate \tilde{g}_eta + \tilde{g}_\sigma
-unbiased_BS = UnbiasBispectrum(BispectrumAvg, fftshift(FourierTransformAvg), estimated_sigma);
-
-%filter with low pass via fft
-unbiased_BS_hat = fft(fftshift(unbiased_BS)).*(1/2^l);
-lowpass_hat = fft(fftshift(low_pass)).*(1/2^l);
-
-lowpass_BS = ifft(ifftshift(unbiased_BS_hat .* lowpass_hat)).*2^l;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-%calcuate part of the estimator
-%data = 4 * lowpass_BS + r_grid .* CalculateDerivatives(lowpass_BS, X, Y, spacing);
-
-X_w = repmat(w, length(w), 1);
-Y_w= repmat(w',1,length(w));
-data = 4 .* BispectrumAvg +  CalculateDerivatives(BispectrumAvg, X_w, Y_w,  w(2)-w(1));
-%solve optimization problem via whatever optimizer for estimator, here is
-%problem
 eta = sqrt(var(Tau));
-%eta = 0.2;
+
+if(true_noise_sigma == 0)
+    data = 4 .* BispectrumAvg +  CalculateDerivatives(BispectrumAvg, X_w, Y_w, spacing);    
+else
+    %make guassian filter
+    if(true_noise_sigma >= 1)
+        GaussianWidth = (true_noise_sigma^6/M).^(1/6);
+    else
+        GaussianWidth = (1/M).^(1/2); 
+    end
+    disp(GaussianWidth)
+    low_pass = MakeSmoothingMatrixBS(w, GaussianWidth);
+    % Empirically estimate the additive noise variance
+    % Use somewhere near the corner where the signal would be nearly zero
+    % basically
+    %estimated_sigma = sqrt(mean(abs([BispectrumAvg(2,1:N) BispectrumAvg(2,end-N+1:end)])));
+    %calculate \tilde{g}_eta + \tilde{g}_\sigma
+    figure
+    axis square
+    imagesc('XData',w,'YData',w,'CData',real(BispectrumAvg))
+    title('Data Term Before Smoothing','fontsize',16,'Interpreter','Latex')
+    colorbar()
+    %unbiased_BS = UnbiasBispectrum(BispectrumAvg, fftshift(FourierTransformAvg), 0,w);
+    unbiased_BS = BispectrumAvg;
+    %filter with low pass via fft
+    
+    unbiased_BS_fft =  fft2(fftshift(unbiased_BS));
+    low_pass_fft =  fft2(fftshift(low_pass));
+    disp(max(low_pass,[],'all'))
+    lowpass_BS = ifftshift(ifft2(ifftshift(low_pass_fft.*unbiased_BS_fft)));
+    %lowpass_BS = conv2(unbiased_BS, low_pass, 'same');
+    figure
+    axis square
+    imagesc('XData',w,'YData',w,'CData',real(lowpass_BS))
+    title('After Smoothing','fontsize',16,'Interpreter','Latex')
+    colorbar()
+    data = 4 * lowpass_BS + CalculateDerivatives(lowpass_BS, X_w, Y_w, spacing);
+end
+
 C_0 = (1-sqrt(3)*eta)/(1+sqrt(3)*eta);
-disp(C_0^4)
 C_1 = 2*sqrt(3)*eta;
 C_2 = 1/(1+sqrt(3)*eta);
 
 %True signal
 TrueBS = CenterBS(ComputeBispectrum(Undilatedf_hat));
 
-dilated_g = (C_0^4).*interp2(X_w./C_0, Y_w./C_0, real(TrueBS), X_w, Y_w,RandomDilationOpts.InterpolationMethod);
-dilated_d = (C_2^4).*interp2( X_w./C_2, Y_w./C_2, real(data), X_w, Y_w,RandomDilationOpts.InterpolationMethod);
+dilated_g = (C_0^3).*interp2(X_w./C_0, Y_w./C_0, real(TrueBS), X_w, Y_w,RandomDilationOpts.InterpolationMethod);
+dilated_d = (C_2^3).*interp2( X_w./C_2, Y_w./C_2, real(data), X_w, Y_w,RandomDilationOpts.InterpolationMethod);
+
+%figure
+%hold on
+%grid on
+%axis square
+%imagesc('XData',w,'YData',w,'CData',real(TrueBS)-dilated_g)
+%title('I-LC_0','fontsize',16,'Interpreter','Latex')
+%colorbar()
+
+%figure
+%hold on
+%grid on
+%axis square
+%imagesc('XData',w,'YData',w,'CData',C_1.*dilated_d)
+%title('C_1 L_{C_2}','fontsize',16,'Interpreter','Latex')
+%colorbar()
 
 
-figure
-hold on
-grid on
-axis square
-imagesc('XData',w,'YData',w,'CData',real(TrueBS)-dilated_g)
-title('I-LC_0','fontsize',16,'Interpreter','Latex')
-colorbar()
-
-figure
-hold on
-grid on
-axis square
-imagesc('XData',w,'YData',w,'CData',C_1.*dilated_d)
-title('C_1 L_C_2','fontsize',16,'Interpreter','Latex')
-colorbar()
-
-%what should the initialization be when eta is known?
 real_g0 = real(BispectrumAvg); 
 imag_g0 = imag(BispectrumAvg);
 fun_real = @(real_g)compute_loss_and_grad(X_w, Y_w, w, real_g, eta, real(data),RandomDilationOpts,0);
@@ -170,18 +183,5 @@ options = optimoptions('fminunc', ...
 %est_bispectrum_real= fminsearch(fun_real,real_g0);
 
 [I,J] = size(TrueBS);
-disp(min(real(BispectrumAvg),[],'all'))
-disp(min(real(est_bispectrum_real),[],'all'))
-disp(min(real(TrueBS),[],'all'))
-
-disp(max(real(BispectrumAvg),[],'all'))
-disp(max(real(est_bispectrum_real),[],'all'))
-disp(max(real(TrueBS),[],'all'))
-
-disp(sum((real(TrueBS)-real(BispectrumAvg)).^2,'all')/(I*J))
-disp(sum((est_bispectrum_real-real(TrueBS)).^2,'all')/(I*J))
-disp(sum((real(TrueBS)-real(data)).^2,'all')/(I*J))
-%error
-%disp( sum((est_bispectrum_real - real(TrueBS)).^2 , 'all')/ sum(real(TrueBS).^2, 'all') )
-%CenteredTrueBS = UnbiasBispectrum(TrueBS, f, estimated_sigma);
-%use bispectrum inversion algorithm to see if it works
+disp(sum((real(TrueBS)-real(BispectrumAvg)).^2,'all')/sum(real(TrueBS).^2, 'all'))
+disp(sum((est_bispectrum_real-real(TrueBS)).^2,'all')/sum(real(TrueBS).^2, 'all'))
