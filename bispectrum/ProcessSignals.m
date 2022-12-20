@@ -67,7 +67,6 @@ if strcmp(RandomDilationOpts.SynthesisDomain, 'Space')
     end  
     FourierTransformAvg = FourierTransformAvg/M;
     BispectrumAvg = BispectrumAvg/M;
-    plot(real(FourierTransformAvg))
 elseif strcmp(RandomDilationOpts.SynthesisDomain, 'Frequency')  
     
     w=-pi*(2^l):(pi/N):pi*(2^l)-(pi/N);
@@ -102,9 +101,8 @@ else
     if(true_noise_sigma >= 1)
         GaussianWidth = (true_noise_sigma^6/M).^(1/6);
     else
-        GaussianWidth = (1/M).^(1/2); 
+        GaussianWidth = (true_noise_sigma^6/M)^(1/4); 
     end
-    disp(GaussianWidth)
     low_pass = MakeSmoothingMatrixBS(w, GaussianWidth);
     % Empirically estimate the additive noise variance
     % Use somewhere near the corner where the signal would be nearly zero
@@ -114,52 +112,36 @@ else
     figure
     axis square
     imagesc('XData',w,'YData',w,'CData',real(BispectrumAvg))
-    title('Data Term Before Smoothing','fontsize',16,'Interpreter','Latex')
+    title('Data Term Before Smoothing and Unbiasing','fontsize',16,'Interpreter','Latex')
     colorbar()
     unbiased_BS = UnbiasBispectrum(BispectrumAvg, fftshift(FourierTransformAvg), true_noise_sigma, N);
     %unbiased_BS = BispectrumAvg;
     %filter with low pass via fft
     
-    unbiased_BS_fft =  fft2(fftshift(unbiased_BS));
-    low_pass_fft =  fft2(fftshift(low_pass));
-    disp(max(low_pass,[],'all'))
-    lowpass_BS = ifftshift(ifft2(ifftshift(low_pass_fft.*unbiased_BS_fft)));
-    %lowpass_BS = conv2(unbiased_BS, low_pass, 'same');
+    unbiased_BS_fft =  fft2(unbiased_BS);
+    low_pass_fft =  fft2(low_pass);
+
+    %[X_freq, Y_freq] = meshgrid(ifftshift(t));
+    low_pass_deriv_fft =  fft2(MakeSmoothingMatrixBSDeriv(w, GaussianWidth));
+    %low_pass_deriv_fft =  2i*pi*X_w*low_pass_fft + 2i*pi*Y_w*low_pass_fft;
+
+    lowpass_BS = ifftshift(ifft2(low_pass_fft.*unbiased_BS_fft));
+    lowpass_BS_deriv = ifftshift(ifft2(low_pass_deriv_fft.*unbiased_BS_fft));
+
+    %lowpass_BS = conv2(unbiased_BS, low_pass, 'same')/sum(abs(low_pass), 'all');
     figure
     axis square
     imagesc('XData',w,'YData',w,'CData',real(lowpass_BS))
-    title('After Smoothing','fontsize',16,'Interpreter','Latex')
+    title('After Smoothing and Unbiasing','fontsize',16,'Interpreter','Latex')
     colorbar()
-    data = 4 * lowpass_BS + CalculateDerivatives(lowpass_BS, X_w, Y_w, spacing);
+    data = 4 * lowpass_BS + lowpass_BS_deriv; 
 end
-
 C_0 = (1-sqrt(3)*eta)/(1+sqrt(3)*eta);
 C_1 = 2*sqrt(3)*eta;
 C_2 = 1/(1+sqrt(3)*eta);
 
 %True signal
 TrueBS = CenterBS(ComputeBispectrum(Undilatedf_hat));
-
-dilated_g = (C_0^3).*interp2(X_w./C_0, Y_w./C_0, real(TrueBS), X_w, Y_w,RandomDilationOpts.InterpolationMethod);
-dilated_d = (C_2^3).*interp2( X_w./C_2, Y_w./C_2, real(data), X_w, Y_w,RandomDilationOpts.InterpolationMethod);
-
-%figure
-%hold on
-%grid on
-%axis square
-%imagesc('XData',w,'YData',w,'CData',real(TrueBS)-dilated_g)
-%title('I-LC_0','fontsize',16,'Interpreter','Latex')
-%colorbar()
-
-%figure
-%hold on
-%grid on
-%axis square
-%imagesc('XData',w,'YData',w,'CData',C_1.*dilated_d)
-%title('C_1 L_{C_2}','fontsize',16,'Interpreter','Latex')
-%colorbar()
-
-
 real_g0 = real(BispectrumAvg); 
 imag_g0 = imag(BispectrumAvg);
 fun_real = @(real_g)compute_loss_and_grad(X_w, Y_w, w, real_g, eta, real(data),RandomDilationOpts,0);
@@ -176,12 +158,10 @@ options = optimoptions('fminunc', ...
                        'OptimalityTolerance',tol, ...
                        'Display','iter','StepTolerance', tol);
 
-[est_bispectrum_real,lossval_real] = fminunc(fun_real,real(TrueBS),options);
+[est_bispectrum_real,lossval_real] = fminunc(fun_real,real_g0,options);
 [est_bispectrum_im,lossval_imag] = fminunc(fun_imag,imag_g0,options);
 
-%fun_real = @(real_g)obj(w, real_g, eta, real(data),RandomDilationOpts);
-%est_bispectrum_real= fminsearch(fun_real,real_g0);
-
+%calculating relative error
 [I,J] = size(TrueBS);
 disp(sum((real(TrueBS)-real(BispectrumAvg)).^2,'all')/sum(real(TrueBS).^2, 'all'))
 disp(sum((est_bispectrum_real-real(TrueBS)).^2,'all')/sum(real(TrueBS).^2, 'all'))
