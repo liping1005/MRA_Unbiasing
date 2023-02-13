@@ -1,7 +1,7 @@
-addpath(genpath('../../BS_Calculation'))
-addpath(genpath('../../SignalRecovery'))
-addpath(genpath('../../PS_code'))
-addpath(genpath('../../Utils'))
+addpath(genpath('../BS_Calculation'))
+addpath(genpath('../SignalRecovery'))
+addpath(genpath('../PS_code'))
+addpath(genpath('../Utils'))
 
 %% Select example: 
 
@@ -30,7 +30,7 @@ if Signal==1
     
 elseif Signal==2
     
-    f1 = @(x)(10.6857)*exp(-5*x.^2).*cos(16.*x);
+    f1 = @(x)(10.6857)*exp(-10*x.^2).*cos(16.*x);
     RandomDilationOpts.SynthesisDomain = 'Space';
     
 elseif Signal==3
@@ -40,8 +40,11 @@ elseif Signal==3
     
 elseif Signal==4
     
-    f1 = @(x)(4.45458)*(sinc(.2.*(x-32))+sinc(.2.*(-x-32)));
-    RandomDilationOpts.SynthesisDomain = 'Frequency';
+    %f1 = @(x)(4.45458)*(sinc(.2.*(x-16))+sinc(.2.*(-x-16)));
+    %f1 = @(x)(4.45458)*(sinc(.2.*(x-16)));
+    %RandomDilationOpts.SynthesisDomain = 'Frequency';
+    f1 = @(x)(50)*(step_function(x,-0.25,0.25))
+    RandomDilationOpts.SynthesisDomain = 'Space';
     
 elseif Signal==5
     
@@ -50,13 +53,17 @@ elseif Signal==5
     
 elseif Signal==6
     
-    f1 = @(x)(4.09331)*(step_function(x,-38,-32)+step_function(x,32,38));
-    RandomDilationOpts.SynthesisDomain = 'Frequency';
+    %f1 = @(x)(4.09331)*(step_function(x,-38,-32)+step_function(x,32,38));
+    %RandomDilationOpts.SynthesisDomain = 'Frequency';
+    f1 = @(x)(4.45458)*(sinc(8.*x));
+    RandomDilationOpts.SynthesisDomain = 'Space';
     
 elseif Signal==7
     
-    f1 = @(x)(2.58883)*sqrt(zigzag((x+40)/5)+zigzag((x-40)/5));
-    RandomDilationOpts.SynthesisDomain = 'Frequency';
+    %f1 = @(x)(2.58883)*sqrt(zigzag((x+40)/5)+zigzag((x-40)/5));
+    %RandomDilationOpts.SynthesisDomain = 'Frequency';
+    f1 = @(x)(4.45458)*(sinc(8.*x)).^2;
+    RandomDilationOpts.SynthesisDomain = 'Space';
 else 
     disp('Error')
 end
@@ -65,7 +72,7 @@ end
 
 N=2^(4); %Choose N at least 8, or we don't get J>0; choose N a power of 2, or weird things happen
 l=5;
-M=10000; % number of times we sample the noisy signal
+M=10; % number of times we sample the noisy signal
 RandomDilationOpts.Normalization = 'Linf'; %Options: L1 or Linf normalized dilations
 RandomDilationOpts.Translate = 'True'; 
 RandomDilationOpts.MagnitudeMaxTau = 0.5; %Needed for both Uniform and TruncatedGaussian (default: 0.2)
@@ -76,7 +83,7 @@ RandomDilationOpts.SmoothPS = 'yes';
 RandomDilationOpts.SmoothDerivPS = 'no';
 RandomDilationOpts.SmoothPSCorrectionTerm = 'no'; %Only compute for Oracle! Hasn't been implemented for Empirical
 RandomDilationOpts.InterpolationMethod = 'spline';
-RandomDilationOpts.DilationCalc='Empirical';
+RandomDilationOpts.DilationCalc='Oracle';
 true_noise_sigma= sqrt(2); %Optional: add additive Gaussian noise
 %sqrt(2)
 OptimizationOpts.Method = 'Unconstrained';
