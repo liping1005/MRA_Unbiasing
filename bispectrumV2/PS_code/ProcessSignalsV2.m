@@ -51,7 +51,7 @@ if strcmp(RandomDilationOpts.SynthesisDomain, 'Space')
     w=-pi*(2^l):(pi/N):pi*(2^l)-(pi/N);
     spacing = w(2) - w(1);
     %get fft
-    Undilatedf_hat = fft(fftshift(f)).*(1/2^l);
+    Undilatedf_hat = ifftshift(fft(fftshift(f))).*(1/2^l);
     UndilatedPowerSpectrum  = abs(Undilatedf_hat).^2;
         
     % Compute Bispectrum for Dilated Signals
@@ -61,7 +61,7 @@ if strcmp(RandomDilationOpts.SynthesisDomain, 'Space')
     BispectrumAvg = zeros(length(w), length(w));  
     %disp(size(BispectrumAvg))
     for i=1:M
-        ft_temp = fft(fftshift(NoisyPaddedDilatedSignals(i,:))).*(1/2^l);
+        ft_temp = ifftshift(fft(fftshift(NoisyPaddedDilatedSignals(i,:)))).*(1/2^l);
         FourierTransformAvg = FourierTransformAvg + ft_temp; 
         PowerSpectrumAvg = PowerSpectrumAvg + abs(ft_temp).^2;
     end  

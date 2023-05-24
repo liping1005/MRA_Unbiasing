@@ -42,8 +42,7 @@ end
 %end
 
 %corresponds to loss in paper
-[I,J] = size(g);
-loss = sum((g - dilated_g - C_1 .* dilated_d).^2, 'all')/(I*J);
+loss = sum((g - dilated_g - C_1 .* dilated_d).^2, 'all');
 
 % Find values where dilation by 1/C_0  or 1/C_2 is a problem:
 no_interp_idx = find((w<C_0*min(w)) | (w>C_0*max(w)) | (w>C_2*max(w)) | w<C_2*min(w));
@@ -66,13 +65,5 @@ end
 shrink_f(no_interp_idx,:)=0;
 shrink_f(:,no_interp_idx)=0;
 %2(f-shrink_f) is the adjoint/gradient term
-grad = 2.*(f-shrink_f)/(I*J);
-
-%figure
-%hold on
-%grid on
-%axis square
-%imagesc('XData',w,'YData',w,'CData',g)
-%title('Real Estimate Iteration','fontsize',16,'Interpreter','Latex')
-%colorbar()
+grad = 2.*(f-shrink_f);
 end

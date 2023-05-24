@@ -1,29 +1,32 @@
+real_data = real(data);
+imag_data = imag(data);
+real_TrueBS = real(UndilatedBispectrum);
+imag_TrueBS = imag(UndilatedBispectrum);
+real_lowpass = real(lowpass_BS);
+imag_lowpass = imag(lowpass_BS);
+%save('f4_real_C_5.mat', 'est_bispectrum_real', 'real_data', 'real_TrueBS','real_lowpass')
+%save('f4_imag_C_5.mat', 'est_bispectrum_im', 'imag_data', 'imag_TrueBS', 'imag_lowpass')
+
 figure
+subplot(1,3,1)
+hold on
+grid on
 axis square
-imagesc('XData',w,'YData',w,'CData',est_bispectrum_real)
+imagesc('XData',w,'YData',w,'CData',real(Plotrecovered_bs))
 title('Recovered','fontsize',16,'Interpreter','Latex')
 colorbar()
 
-figure
+subplot(1,3,2)
 axis square
-imagesc('XData',w,'YData',w,'CData',real(data))
-title('Data Term','fontsize',16,'Interpreter','Latex')
+imagesc('XData',w,'YData',w,'CData',real(lowpass_BS))
+title('BS After Centering','fontsize',16,'Interpreter','Latex')
 colorbar()
 
-figure
+subplot(1,3,3)
 axis square
-imagesc('XData',w,'YData',w,'CData',real(TrueBS))
+imagesc('XData',w,'YData',w,'CData',real(UndilatedBispectrum))
 title('Ground Truth','fontsize',16,'Interpreter','Latex')
 colorbar()
 
-figure
-axis square
-imagesc('XData',w,'YData',w,'CData',real(unbiased_BS))
-title('unbiased BS','fontsize',16,'Interpreter','Latex')
-colorbar()
+hold off
 
-figure
-axis square
-imagesc('XData',w,'YData',w,'CData',real(lowpass_BS))
-title('low BS','fontsize',16,'Interpreter','Latex')
-colorbar()
