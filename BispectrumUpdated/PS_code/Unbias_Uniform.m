@@ -78,7 +78,7 @@ if strcmp(RandomDilationOpts.MomentCalc,'Oracle')
         
         if strcmp(RandomDilationOpts.SmoothPSCorrectionTerm, 'yes')
             sqrt_g0 = sqrt(abs(TargetPowerSpectrum));
-            fun = @(sqrt_g)compute_loss_with_grad_uniform_v3(w,sqrt_g,C_0,h_PS_corrected,RandomDilationOpts);
+            fun = @(sqrt_g)compute_loss_with_grad_uniform(w,sqrt_g,C_0,h_PS_corrected,RandomDilationOpts);
             tol = OptimizationOpts.Uniformtol;
             options = optimoptions('fminunc','Algorithm','quasi-newton','SpecifyObjectiveGradient',true,'MaxFunctionEvaluations', 50000,'MaxIterations',5000,'StepTolerance', tol,'FunctionTolerance', tol,'OptimalityTolerance',tol,'Display','iter','CheckGradients',false);
             [sqrt_UnbiasedPS_corrected,lossval,exitflag,output,grad]=fminunc(fun,sqrt_g0,options);
@@ -101,7 +101,7 @@ elseif strcmp(RandomDilationOpts.MomentCalc,'Empirical')
     
     %eta_initialization = .35+(.1*rand-0.05); % \eta is initialized Unif(0.3,0.4) 
     %eta_init_grid = 0.3;
-    eta_init_grid = .1:.05:.35;
+    eta_init_grid = .1:0.01:.35;
     %eta_initialization = 0.30;
     
     % Unbias the PS (if differentiable):
@@ -110,7 +110,7 @@ elseif strcmp(RandomDilationOpts.MomentCalc,'Empirical')
     elseif strcmp(RandomDilationOpts.PSUniform,'yes')
             
        % Optimize to find the G = (g, \eta) which produces data_term   
-        fun = @(sqrt_g)compute_loss_with_grad_uniform_learn_eta_v3(w,sqrt_g,sqrt(UndilatedPowerSpectrum),RandomDilationOpts);
+        fun = @(sqrt_g)compute_loss_with_grad_uniform_learn_eta_v3(w,sqrt_g,data_term_PS,RandomDilationOpts);
         tol = OptimizationOpts.Uniformtol;
         %Constrained optimization
         A = zeros(length(TargetPowerSpectrum)+1,length(TargetPowerSpectrum)+1);   
@@ -126,6 +126,7 @@ elseif strcmp(RandomDilationOpts.MomentCalc,'Empirical')
         UnbiasedPS_grid = zeros(length(eta_init_grid),length(TargetPowerSpectrum));
         for i=1:length(eta_init_grid)
             eta_initialization = eta_init_grid(i);
+            %sqrt_g0 = [sqrt(UndilatedPowerSpectrum) eta_initialization]; 
             sqrt_g0 = [sqrt(abs(TargetPowerSpectrum)) eta_initialization]; 
             %sqrt_g0 = [sqrt(abs(randn(size(TargetPowerSpectrum)))) eta_initialization]; 
             [G,lossval,exitflag,output,lambda,grad,hessian] = fmincon(fun,sqrt_g0,A,b,[],[],[],[],[],options);
@@ -140,8 +141,12 @@ elseif strcmp(RandomDilationOpts.MomentCalc,'Empirical')
             best_eta_idx = cand_eta_idx( find(lossvals_grid_PS(cand_eta_idx)==min(lossvals_grid_PS(cand_eta_idx))) ); % take one with minimum loss value if there is more than one interior solution
         end
         eta_PS = eta_grid_PS(best_eta_idx);
-        UnbiasedPS = UnbiasedPS_grid(best_eta_idx,:);       
-    end    
+        UnbiasedPS = UnbiasedPS_grid(best_eta_idx,:);
+        %loss_true_eta = compute_loss_fixed_g(w, TargetPowerSpectrum,data_term_PS, eta_init_grid, RandomDilationOpts);
+        %loss_true_eta = compute_loss_fixed_g(w, UndilatedPowerSpectrum,data_term_PS, eta_init_grid, RandomDilationOpts);
+    end 
+elseif strcmp(RandomDilationOpts.MomentCalc,'Test')
+    
 end
     
 
@@ -157,11 +162,6 @@ if strcmp(PlotFigs,'yes')==1
  
     figure
     
-    if strcmp(GlobalOpts.ComputeWavelets,'yes')
-        NumFigs = 6;
-    else
-        NumFigs = 4;
-    end
 
     subplot(NumFigs/2,2,1);
     plot(w,UndilatedPowerSpectrum);

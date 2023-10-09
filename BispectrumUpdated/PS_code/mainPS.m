@@ -24,7 +24,7 @@ Signal = input(['\nWhich example do you want to run?',...
        '\nInput example number without brackets or parentheses: ']);
 
 if Signal==1
-    f1 = @(x)(9.759)*exp(-5*x.^2).*cos(4.*x);
+    f1 = @(x)(9.759)*exp(-5*x.^2) .* cos(4.*x);
     RandomDilationOpts.SynthesisDomain = 'Space';  
 elseif Signal==2
     f1 = @(x)(10.6768)*exp(-5*x.^2).*cos(8.*x);
@@ -47,20 +47,10 @@ elseif Signal==7
     f1 = @(x)zeros(size(x));
     RandomDilationOpts.SynthesisDomain = 'Space';
 elseif Signal==8
-    f1 = @(x)(7.1665*exp(-4.*x.^2));
+    f1 =@(x)1/sqrt(0.0078).*(sinc(4.*x));
     RandomDilationOpts.SynthesisDomain = 'Space';
 elseif Signal==9
-    f1 = @(x)(1/sqrt(0.0174).*(1-(x.^2)) .* exp(-4.*x.^2));
-    RandomDilationOpts.SynthesisDomain = 'Space';
-elseif Signal==10 % consider making 16 the highest?
-    f1 = @(x)(10.6857)*exp(-5*x.^2).*cos(16.*x);
-    RandomDilationOpts.SynthesisDomain = 'Space'; 
-elseif Signal==11 % consider making 16 the highest?
-    f1 = @(x)(1.795*step_function(x,-5.0,5.0));
-    RandomDilationOpts.SynthesisDomain = 'Space'; 
-elseif Signal==12 % consider making 16 the highest?
-    f1 = @(x)1/(sqrt(0.0049)) .* exp(-16.*x.^2).*cos(16.*x);
-    RandomDilationOpts.SynthesisDomain = 'Space'; 
+    f1 = @(x)1/sqrt(0.0208).*(sinc(x)).^2;
 else 
     disp('Error')
 end
@@ -68,8 +58,8 @@ end
 
 % Define parameters and signal (signal defined on [-N/2, N/2), noise on [-N,N) with spacing 1/2^l)
 N=2^(4); %Choose N at least 8, or we don't get J>0; choose N a power of 2, or weird things happen
-l=4;
-M=200000; % number of times we sample the noisy signal
+l=3;
+M=500000; % number of times we sample the noisy signal
 GaussianConstant = 5.0;
 PSWidthConstant = 5.0;
 RandomDilationOpts.SynthesisDomain = 'Space';
